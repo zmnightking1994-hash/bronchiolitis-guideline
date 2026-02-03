@@ -46,62 +46,54 @@ with c2:
     apnoea = st.selectbox("Apnoea:", ["None", "Reported", "Observed"])
 
 with c3:
-    # Adding Respiratory Rate (RR) and Heart Rate (HR)
     rr = st.number_input("Respiratory Rate (breaths/min):", min_value=10, max_value=150, value=40)
     hr = st.number_input("Heart Rate (bpm):", min_value=30, max_value=250, value=120)
     spo2 = st.slider("Oxygen Saturation (SpO2 %):", 80, 100, 96)
 
-# --- SECTION 3: LOGIC (Based on bronchioritis.xlsx) ---
+# --- SECTION 3: SEVERITY LOGIC ---
 severity = "Mild"
-
-# Severe Criteria: RR > 70 or any severe marker
-if (effort == "Severe Recession / Grunting" or 
-    spo2 < 90 or 
-    rr > 70 or
-    behavior == "Letharging / Reduced response" or 
-    feeding == "< 50% of normal" or 
-    apnoea == "Observed"):
+if (effort == "Severe Recession / Grunting" or spo2 < 90 or rr > 70 or 
+    behavior == "Lethargic / Reduced response" or feeding == "< 50% of normal" or apnoea == "Observed"):
     severity = "Severe"
-
-# Moderate Criteria: RR 50-70 or moderate markers
-elif (effort == "Moderate Recession" or 
-      (90 <= spo2 < 92) or 
-      (50 <= rr <= 70) or
-      behavior == "Irritable / Difficult to soothe" or 
-      feeding == "50-75% of normal" or
-      apnoea == "Reported"):
+elif (effort == "Moderate Recession" or (90 <= spo2 < 92) or (50 <= rr <= 70) or
+      behavior == "Irritable / Difficult to soothe" or feeding == "50-75% of normal" or apnoea == "Reported"):
     severity = "Moderate"
 
-# --- SECTION 4: FINAL DISPOSITION ---
+# --- SECTION 4: INTEGRATED INTERVENTIONS ---
 st.divider()
 st.header(f"Result: {severity} Bronchiolitis")
 
+# General Clinical Notes (The "Don'ts")
+st.error("🚫 **DO NOT ROUTINELY USE:** Salbutamol, Steroids, Antibiotics, Chest X-rays, or Viral Swabs.")
+
 if severity == "Mild":
-    st.success("✅ Management: Home Care")
+    st.success("### ✅ Intervention: Home Care (Discharge)")
     st.markdown("""
-    **Discharge Criteria:**
-    * SpO2 > 92% on air
-    * Feeding > 75% of normal
-    * Caregivers feel confident at home
+    * **Feeding:** Ensure oral intake > 75%. Encourage small frequent feeds.
+    * **Suction:** Nasal suction only if nose is blocked.
+    * **Discharge Criteria:** SpO2 > 92% on air and stable clinical state.
+    * **Safety Net:** Advise parents to return if effort increases or feeding drops.
     """)
 
 elif severity == "Moderate":
-    st.warning("⚠️ Management: Hospital Observation")
+    st.warning("### ⚠️ Intervention: Hospital Observation")
     st.markdown("""
-    **Interventions:**
-    * Oxygen if SpO2 persistently < 92%
-    * Consider NGT if feeding is 50-75%
-    * Minimal handling
+    * **Oxygen:** Titrate to maintain SpO2 > 92%.
+    * **Feeding:** Consider Nasogastric Tube (NGT) if intake is 50-75%.
+    * **Monitoring:** Regular clinical assessment and minimal handling.
+    * **Support:** Ensure parental confidence and provide teaching on suction.
     """)
 
 else:
-    st.error("🚨 Management: URGENT / HDU")
+    st.error("### 🚨 Intervention: URGENT ADMISSION / HDU")
     st.markdown("""
-    **Immediate Action:**
-    * Senior clinical review required
-    * Consider CPAP or High Flow Oxygen
-    * NG or IV fluids (1/2 to 2/3 maintenance)
+    * **Respiratory:** Start CPAP or High Flow Nasal Cannula (HFNC).
+    * **Fluids:** IV fluids (consider 1/2 or 2/3 maintenance) or NGT feeding.
+    * **Consultation:** Immediate Senior Clinician / Pediatric ICU review.
+    * **Observation:** Constant monitoring for apnoea and exhaustion.
     """)
+
+
 
 if st.button("New Assessment"):
     st.rerun()
