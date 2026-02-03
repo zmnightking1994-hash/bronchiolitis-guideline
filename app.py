@@ -1,6 +1,6 @@
 import streamlit as st
 
-# --- إعدادات الصفحة ---
+# --- Page Configuration ---
 st.set_page_config(page_title="Bronchiolitis Gold Standard 2026", layout="wide")
 
 st.title("📑 Bronchiolitis Management Pathway (Comprehensive Version)")
@@ -10,7 +10,7 @@ st.caption("Integrated Protocol: RCH Melbourne, PREDICT & 2026 Safety Guidelines
 st.header("1. Risk Assessment")
 col_age, col_risks = st.columns([1, 2])
 with col_age:
-    is_under_6_weeks = st.checkbox("Infant age < 6 weeks") # تم التعديل لـ 6 أسابيع
+    is_under_6_weeks = st.checkbox("Infant age < 6 weeks") 
 
 with col_risks:
     risk_factors = st.multiselect(
@@ -19,7 +19,7 @@ with col_risks:
          "Neurological conditions", "Immunodeficiency", "Tobacco smoke exposure"]
     )
 
-# ضبط عتبة الأكسجين المستهدفة
+# Adjust target oxygen threshold
 current_threshold = 92 if (is_under_6_weeks or risk_factors) else 90
 
 st.divider()
@@ -41,16 +41,28 @@ with c3:
 
 # --- 3. SEPARATED SAFETY LOGIC ---
 
-# تصنيف الشدة التنفسية (Respiratory Severity)
+# Respiratory & Clinical Severity Logic
 resp_severity = "Mild"
-if (effort == "Severe / Grunting" or spo2 < 87 or apnoea == "Observed clinically" or 
-    behavior == "Lethargic / Altered Mental State" or rr > 70):
-    resp_severity = "Severe"
-elif (effort == "Moderate" or (87 <= spo2 < current_threshold) or (50 <= rr <= 70) or apnoea == "Reported by parents"):
+
+# Check for Moderate Severity first
+if (effort == "Moderate" or 
+    behavior == "Irritable" or 
+    feeding_status == "50-75% Intake" or 
+    apnoea == "Reported by parents" or 
+    (87 <= spo2 < current_threshold) or 
+    (50 <= rr <= 70)):
     resp_severity = "Moderate"
 
-# حماية المجرى التنفسي (Feeding Safety Logic)
-# يُمنع الإرضاع الفموي في 3 حالات: جهد شديد، خمول، أو انقطاع نفس ملحوظ
+# Severe Severity Overrides (High-risk triggers)
+if (effort == "Severe / Grunting" or 
+    spo2 < 87 or 
+    apnoea == "Observed clinically" or 
+    behavior == "Lethargic / Altered Mental State" or 
+    feeding_status == "< 50% / Dehydration" or
+    rr > 70):
+    resp_severity = "Severe"
+
+# Airway Protection (Feeding Safety Logic)
 is_unsafe_to_feed = (
     behavior == "Lethargic / Altered Mental State" or 
     apnoea == "Observed clinically" or 
@@ -112,7 +124,6 @@ with col_hydra:
 st.divider()
 st.subheader("🏥 Weaning & Discharge Protocol (Detailed)")
 
-# منطق التخريج السريع (Fast Track)
 if spo2 >= 95 and effort == "Normal" and behavior == "Normal / Alert" and feeding_status == "Adequate":
     st.balloons()
     st.success("**🚀 Fast Track Discharge Enabled:** SpO2 ≥ 95% + Stable Clinical State. Safe for home.")
@@ -135,8 +146,6 @@ else:
         - **Work of Breathing:** Stable (Normal or Mild) with no grunting.
         - **Social:** Parents confident and have access to follow-up.
         """)
-
-
 
 if st.button("Start New Assessment"):
     st.rerun()
