@@ -38,12 +38,13 @@ with c3:
     spo2 = st.slider("Oxygen Saturation (SpO2 %):", 70, 100, 96)
     st.info(f"💡 Target SpO2: ≥ {current_threshold}%")
 
-# --- 3. REFINED SEVERITY LOGIC ---
+# --- 3. REFINED SEVERITY LOGIC (UPDATED) ---
 
-# تصنيف الشدة التنفسية والعصبية
+# Severe triggers: includes poor feeding < 50% and lethargy
 is_severe_trigger = (
     effort == "Severe / Grunting" or 
     behavior == "Lethargic / Altered Mental State" or 
+    feeding_status == "< 50% / Dehydration" or # تم التأكد من وجودها هنا لتفعيل الشدة العالية
     apnoea == "Observed clinically" or 
     spo2 < 87 or 
     rr > 70
@@ -65,8 +66,10 @@ elif is_moderate_trigger:
 else:
     severity = "Mild"
 
-# منطق حماية المجرى التنفسي والسوائل
-needs_advanced_resp = is_severe_trigger # إذا كان مثبط أو مجهد يحتاج دعم تنفسي فوراً
+# Respiratory Support Logic: تفعيل الدعم التنفسي المتقدم في حالتين (الجهد التنفسي أو اضطراب الوعي/الخمول)
+needs_advanced_resp = (effort == "Severe / Grunting" or behavior == "Lethargic / Altered Mental State" or apnoea == "Observed clinically" or spo2 < 87)
+
+# NPO Logic
 is_npo = (behavior == "Lethargic / Altered Mental State" or effort == "Severe / Grunting" or apnoea == "Observed clinically")
 
 # --- 4. MANAGEMENT PILLARS ---
@@ -79,29 +82,28 @@ col_resp, col_hydra = st.columns(2)
 with col_resp:
     st.subheader("🫁 Pillar 1: Respiratory Support")
     if needs_advanced_resp:
-        st.error("**🚨 High Flow (HFNC) / CPAP Required:**")
+        st.error("**🚨 High Flow (HFNC) / CPAP Protocol:**")
         st.markdown(f"""
-        - **Initial Action**: Start HFNC at **2 L/kg/min**.
-        - **Indication**: {'Altered Consciousness (Lethargy)' if behavior == 'Lethargic / Altered Mental State' else 'Severe Respiratory Distress'}.
-        - **FiO2**: Titrate to maintain SpO2 ≥ {current_threshold}%.
-        - **Escalation**: Consider CPAP if HFNC fails or FiO2 > 50%.
-        - **Venting**: Mandatory NGT for gastric decompression.
+        - **Action**: Start HFNC at **2 L/kg/min**.
+        - **Note**: Mandatory due to **{behavior if behavior == 'Lethargic / Altered Mental State' else 'Respiratory Distress'}**.
+        - **FiO2**: Titrate for SpO2 ≥ {current_threshold}%.
+        - **Venting**: Mandatory NGT for decompression.
         """)
     elif severity == "Moderate" or spo2 < current_threshold:
         st.warning("**⚠️ Low Flow Oxygen (LFNP):**")
         st.write(f"- Maintain SpO2 ≥ {current_threshold}% using nasal prongs.")
     else:
         st.success("**✅ Action: Monitoring Only**")
-        st.write("- Routine assessment every 4 hours.")
+        st.write("- Assessment every 4 hours.")
 
 with col_hydra:
     st.subheader("🍼 Pillar 2: Hydration (Safety Standards)")
-    if is_npo or feeding_status == "< 50% / Dehydration":
+    if severity == "Severe" or feeding_status == "< 50% / Dehydration":
         st.error("**🚨 Action: Fluid Restriction (Safety Rate)**")
         st.markdown(f"""
         - **Rate**: **66% - 75% of maintenance** (Strict restriction).
-        - **Reason**: Risk of SIADH and fluid overload in **{severity}** cases.
-        - **Route**: NGT hydration is preferred over IV unless contraindicated.
+        - **Reason**: Risk of SIADH in **Severe** or **Dehydrated** cases.
+        - **Route**: NGT hydration (preferred).
         """)
     elif feeding_status == "50-75% Intake":
         st.warning("**Action: NGT Bolus Support**")
@@ -118,13 +120,13 @@ with c_wean:
     st.info("**📉 Weaning:**")
     st.markdown("""
     - Reduce FiO2 to **21%** (Room Air) first.
-    - Trial off flow/oxygen for 30-90 mins.
+    - Trial off O2 for 30-90 mins.
     - **Fail if**: HR increases > 20 bpm or RR > 10 bpm.
     """)
 with c_dis:
     st.info("**🏠 Discharge Criteria:**")
     st.markdown(f"""
-    - SpO2 ≥ {current_threshold}% on room air for **4-12 hours** (including sleep).
+    - SpO2 ≥ {current_threshold}% on air for **4-12 hours**.
     - Oral intake > 50-75% of normal.
     - Stable Work of Breathing.
     """)
