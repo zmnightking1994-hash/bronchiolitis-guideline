@@ -1,29 +1,27 @@
 import streamlit as st
 
 # --- إعدادات الصفحة ---
-st.set_page_config(page_title="Bronchiolitis Clinical Guide 2025", layout="wide")
+st.set_page_config(page_title="Bronchiolitis Gold Standard 2026", layout="wide")
 
 st.title("📑 Bronchiolitis Management Pathway (Final Gold Version)")
-st.caption("Integrated Protocol: RCH Melbourne & PREDICT 2025 Guidelines")
+st.caption("Comprehensive Protocol: RCH Melbourne, PREDICT & 2026 Guidelines")
 
 # --- SECTION 1: RISK ASSESSMENT ---
 st.header("1. Risk Assessment")
 col_age, col_risks = st.columns([1, 2])
 
 with col_age:
-    # العودة لنمط الاختيار البسيط كما طلبت
+    # واجهة العمر البسيطة كما فضلت
     is_under_6_weeks = st.checkbox("Infant age < 6 weeks")
 
 with col_risks:
     risk_factors = st.multiselect(
         "Risk Factors for Severe Illness:",
-        ["Chronic Lung Disease", "Congenital Heart Disease", "Gestational age <37 weeks", 
-         "Neurological conditions", "Immunodeficiency", "Tobacco smoke exposure"]
+        ["Preterm birth (< 37 weeks)", "Chronic Lung Disease", "CHD", "Trisomy 21", "Tobacco smoke exposure"]
     )
 
-# ضبط العتبة (Target SpO2) بناءً على عوامل الخطورة
-has_risks = (is_under_6_weeks or len(risk_factors) > 0)
-current_threshold = 92 if has_risks else 90
+# ضبط عتبة الأكسجين بناءً على المخاطر
+current_threshold = 92 if (is_under_6_weeks or risk_factors) else 90
 
 st.divider()
 
@@ -58,69 +56,74 @@ if feeding == "< 50% / Dehydration":
 elif feeding == "50-75% Intake":
     feed_severity = "Moderate"
 
-# --- SECTION 4: MANAGEMENT PILLARS ---
+# --- SECTION 4: MANAGEMENT PILLARS (التدبير التفصيلي) ---
 st.divider()
-st.header(f"Management Plan | Resp: {resp_severity} | Feeding: {feed_severity}")
+st.header(f"Management Status | Resp: {resp_severity} | Feeding: {feed_severity}")
+st.error("🚫 **AVOID ROUTINE:** Salbutamol, Steroids, Antibiotics, X-rays, and Viral Swabs.")
 
 col_resp, col_hydra = st.columns(2)
 
-# الركيزة التنفسية: تعتمد فقط على المعايير التنفسية
 with col_resp:
     st.subheader("🫁 Pillar 1: Respiratory Support")
     if resp_severity == "Severe":
-        st.error("**🚨 Action: High Flow (HFNC) / CPAP**")
+        st.error("**🚨 Action: High Flow (HFNC) & Escalation**")
         st.markdown(f"""
-        - **HFNC Setup:** Start at **2 L/kg/min** | FiO2 at **40%** (titrate to SpO2 ≥ {current_threshold}%).
-        - **Escalation:** Consider **CPAP (5-7 cmH2O)** if HFNC fails or FiO2 > 50%.
-        - **Monitoring:** Continuous cardio-respiratory monitoring mandatory.
+        - **HFNC Setup:** Start at **2 L/kg/min** (Max 25L) | FiO2 at **40%** (titrate to keep SpO2 ≥ {current_threshold}%).
+        - **Monitoring:** **Continuous** cardio-respiratory monitoring is mandatory.
+        - **Escalation to CPAP:** Consider **CPAP (5-7 cmH2O)** if FiO2 > 50%, persistent apnoea, or worsening acidosis.
         """)
     elif resp_severity == "Moderate":
         st.warning("**⚠️ Action: Low Flow Oxygen (LFNP)**")
-        st.write(f"- Use nasal prongs at **0.5 - 2 L/min** to maintain SpO2 ≥ {current_threshold}%.")
+        st.markdown(f"""
+        - **Device:** Nasal prongs at **0.5 - 2 L/min**.
+        - **Goal:** Keep SpO2 ≥ {current_threshold}%.
+        - **Note:** If no improvement after 2h, escalate to HFNC.
+        """)
     else:
         st.success("**✅ Action: Monitoring Only**")
-        st.write(f"- SpO2 {spo2}% is stable on Room Air. No O2 needed.")
+        st.write(f"- SpO2 {spo2}% is stable on Room Air. No supplemental O2 required.")
 
-# الركيزة الغذائية: تعتمد على التغذية وخطر الاستنشاق
 with col_hydra:
     st.subheader("🍼 Pillar 2: Hydration & Nutrition")
     if apnoea == "Observed clinically":
         st.error("**🚨 Action: NBM (Nil By Mouth)**")
-        st.write("- **Safety:** High risk of aspiration during apnoea episodes.")
+        st.write("- **Safety:** High aspiration risk due to apnoea. Stop oral feeds.")
         st.write("- Start **NGT** hydration at **66% maintenance**.")
     elif feed_severity == "Severe":
         st.error("**🚨 Action: Active Hydration**")
         st.write("- Start **NGT** (preferred) or IV fluids at **66-75% maintenance**.")
     elif feed_severity == "Moderate":
         st.warning("**⚠️ Action: NGT Support**")
-        st.write("- Supplemental bolus feeds via NGT (100% maintenance).")
+        st.write("- Provide 100% maintenance via NGT boluses.")
     else:
         st.success("**✅ Action: Oral Feeding**")
-        st.write("- Continue breast/formula feeding as tolerated.")
+        st.write("- Continue breast/formula feeds as tolerated.")
 
-# --- SECTION 5: DISCHARGE PROTOCOL (Fast Track included) ---
+# --- SECTION 5: DETAILED WEANING & DISCHARGE ---
 st.divider()
-st.subheader("🏥 Discharge & Weaning Protocol")
+st.subheader("🏥 Discharge & Weaning Protocol (The 'Fast Track' logic)")
 
+# معيار الـ 95% للتخريج الفوري الذي طلبته
 if spo2 >= 95 and effort == "Normal" and feeding == "Adequate":
     st.balloons()
-    st.success("**🚀 Fast Track Discharge:** Patient is stable with SpO2 ≥ 95%. Safe for home discharge with primary care follow-up.")
+    st.success("**🚀 Fast Track Discharge Enabled:** Patient is stable with SpO2 ≥ 95%. Safe for immediate home discharge.")
 else:
     c_wean1, c_wean2 = st.columns(2)
     with c_wean1:
-        st.info("**Weaning Plan**")
+        st.info("**📉 How to Wean Oxygen?**")
         st.markdown(f"""
-        - Trial off O2 every 6h if SpO2 > {current_threshold}% for 2h.
-        - For HFNC: Reduce FiO2 to 21% before ceasing flow.
+        - **Step 1:** Trial off O2 every 6h if SpO2 > {current_threshold}% for 2 consecutive hours.
+        - **Step 2 (HFNC):** Reduce FiO2 to 21% (Room Air) first, then cease flow.
+        - **Step 3:** Stop continuous oximetry once off O2 for 2h and stable.
         """)
     with c_wean2:
-        st.info("**Standard Discharge Criteria**")
+        st.info("**🏠 Standard Discharge Criteria:**")
         st.markdown(f"""
-        - SpO2 ≥ {current_threshold}% on air for 4-12 hours.
+        - SpO2 ≥ {current_threshold}% on air for 4-12 hours (including sleep).
         - Oral intake > 50-75% of normal volume.
         - No observed apnoea for > 24 hours.
+        - Parents confident in home management.
         """)
 
-
-if st.button("Clear Assessment"):
+if st.button("Start New Assessment"):
     st.rerun()
