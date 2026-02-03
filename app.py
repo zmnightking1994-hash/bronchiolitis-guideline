@@ -8,7 +8,7 @@ st.set_page_config(
 )
 
 st.title("📑 Australasian Bronchiolitis Management Pathway (2025 Update)")
-st.caption("Incorporating strict 2025 severity criteria & Risk-adjusted O2 thresholds")
+st.caption("Final Version: Strict Severity & Risk-Adjusted Criteria")
 
 # --- SECTION 1: RISK ASSESSMENT ---
 st.header("1. Risk Assessment")
@@ -18,7 +18,6 @@ with col_age:
     is_under_6_weeks = st.checkbox("Infant age < 6 weeks")
 
 with col_risks:
-    # قائمة عوامل الخطر بناءً على الدليل
     risk_factors = st.multiselect(
         "Pre-existing Risk Factors / Comorbidities:",
         ["Preterm birth (< 37 weeks)", 
@@ -29,8 +28,7 @@ with col_risks:
          "Tobacco Smoke Exposure"]
     )
 
-# --- تحديث عتبة الأكسجين بناءً على ملاحظتك ---
-# العتبة تكون 92 إذا كان العمر < 6 أسابيع أو وجد أي عامل خطر من القائمة
+# Logic for O2 Threshold: 92% if <6w OR has any risk factor, else 90%
 has_risks = len(risk_factors) > 0
 current_threshold = 92 if (is_under_6_weeks or has_risks) else 90
 
@@ -60,76 +58,77 @@ with c2:
 with c3:
     rr = st.number_input("Respiratory Rate (bpm):", min_value=10, max_value=150, value=40)
     spo2 = st.slider("Oxygen Saturation (SpO2 %):", 70, 100, 96)
-    
-    # تنبيه يوضح العتبة الحالية بناءً على المعطيات
-    st.info(f"💡 Target SpO2 threshold for this patient is: {current_threshold}%")
+    st.info(f"💡 Target SpO2 threshold for this patient: {current_threshold}%")
 
-# --- SECTION 3: REFINED SEVERITY LOGIC (PAGE 18) ---
+# --- SECTION 3: REFINED SEVERITY LOGIC (STRICT 2025) ---
 severity = "Mild"
 
-# 🚨 Severe Criteria (SpO2 < 87% is the absolute threshold for Severe)
+# 🚨 Severe Criteria: High priority markers that trigger 'Severe' status
 if (effort == "Severe Recession / Grunting" or 
     spo2 < 87 or 
     behavior == "Lethargic / Altered Mental State" or 
-    apnoea == "Observed" or 
+    apnoea == "Observed clinically" or # Strong marker
+    feeding == "< 50% of normal intake / Dehydration" or # Strong marker
     rr > 70):
     severity = "Severe"
 
-# ⚠️ Moderate Criteria (SpO2 between 87% and the adjusted threshold)
+# ⚠️ Moderate Criteria
 elif (effort == "Moderate Recession" or 
       (87 <= spo2 < current_threshold) or 
       (50 <= rr <= 70) or 
-      feeding != "Normal / Adequate" or 
+      feeding == "50-75% of normal intake" or 
       apnoea == "Reported by parents" or 
       behavior == "Irritable / Difficult to soothe"):
     severity = "Moderate"
 
 # --- SECTION 4: INTEGRATED INTERVENTIONS ---
 st.divider()
-st.header(f"Final Classification: {severity}")
+st.header(f"Clinical Classification: {severity}")
 
-# Strong Recommendations (The "Don'ts")
+# Global Warning for all categories
 st.error("🚫 **GUIDELINE RESTRICTIONS:** Do not routinely use Salbutamol, Steroids, Antibiotics, Chest X-rays, or Viral Swabs.")
 
 col_plan, col_caution = st.columns([2, 1])
 
 with col_plan:
     if severity == "Mild":
-        st.success("### ✅ Intervention: Discharge & Home Care")
+        st.success("### ✅ Intervention: Home Care (Discharge)")
         st.markdown(f"""
-        - **Oxygen:** Not indicated. SpO2 of {spo2}% is acceptable.
-        - **Fluids:** Maintain oral hydration.
-        - **Criteria:** Patient stable with SpO2 > {current_threshold}%.
+        - **Oxygen:** Not indicated. SpO2 {spo2}% is safe.
+        - **Feeding:** Continue oral hydration. Discharge if > 50-75% of normal.
+        - **Advice:** Provide clear safety-netting instructions for parents.
         """)
     
     elif severity == "Moderate":
         st.warning("### ⚠️ Intervention: Hospital Observation")
         st.markdown(f"""
-        - **Oxygen:** Target SpO2 ≥ {current_threshold}%.
-        - **Hydration:** NGT is the preferred route if oral intake is poor (< 50-75%).
-        - **Observation:** Clinical assessment using Early Warning Tools.
+        - **Oxygen:** Titrate only if SpO2 is persistently < {current_threshold}%.
+        - **Hydration:** NGT is preferred over IV if oral intake is poor.
+        - **Monitoring:** Periodic clinical review (avoid unnecessary continuous oximetry).
         """)
     
     else:
-        st.error("### 🚨 Intervention: Urgent / HDU Admission")
-        st.markdown("""
-        - **Support:** Consider CPAP or High Flow Nasal Cannula.
-        - **Fluids:** IV or NGT fluids (Restricted maintenance).
-        - **Review:** Immediate Senior Clinician review required.
+        st.error("### 🚨 Intervention: Urgent Admission / HDU")
+        st.markdown(f"""
+        - **Respiratory Support:** Consider CPAP or High Flow Nasal Cannula (HFNC).
+        - **Fluids:** IV or NGT (consider 2/3 maintenance to avoid fluid overload).
+        - **Clinical:** Immediate Senior Clinician review is mandatory.
         """)
 
 with col_caution:
-    st.info("📌 **Clinical Notes:**")
+    st.info("📌 **Critical Clinical Pearls:**")
     
-    # توضيح حالة الأكسجين "الخادعة"
+    # Context-specific warning for SpO2 "Gray Zone"
     if 87 <= spo2 < current_threshold and effort != "Severe Recession / Grunting":
-        st.warning(f"**O2 Caution:** SpO2 is {spo2}%. This is **Moderate** as per the 2025 update. Do not escalate unless respiratory effort increases.")
-
+        st.warning(f"**Clinical Note:** SpO2 is {spo2}%. Classified as **Moderate** because SpO2 is ≥ 87%. Ensure overall clinical stability.")
+    
     st.markdown(f"""
-    - **Custom Threshold:** Because of {'risk factors' if has_risks else 'age'}, the O2 target is {current_threshold}%.
-    - **Hydration:** NGT is preferred over IV.
-    - **SARS-CoV-2:** Consider Dexamethasone only if positive AND hypoxaemic.
+    - **Apnoea & Feeding:** Because these were flagged as severe/moderate, the status has been adjusted accordingly.
+    - **O2 Target:** {current_threshold}% (Adjusted for {'age/risks' if (is_under_6_weeks or has_risks) else 'normal profile'}).
+    - **NGT vs IV:** NGT hydration is safer and reduces hospital stay.
     """)
 
-if st.button("New Patient Assessment"):
+
+
+if st.button("Start New Assessment"):
     st.rerun()
