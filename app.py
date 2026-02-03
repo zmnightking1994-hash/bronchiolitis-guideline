@@ -7,15 +7,15 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📑 Bronchiolitis Clinical Pathway (2025 Update)")
-st.caption("Based on the Australasian Bronchiolitis Guideline: 2025 Update")
+st.title("📑 Australasian Bronchiolitis Management Pathway (2025 Update)")
+st.caption("Developed based on the PREDICT 2025 Guideline - Strict Severity Criteria")
 
-# --- SECTION 1: RISK FACTORS & AGE ---
+# --- SECTION 1: RISK FACTORS ---
 st.header("1. Risk Assessment")
 col_age, col_risks = st.columns([1, 2])
 
 with col_age:
-    is_under_6_weeks = st.checkbox("Infant age < 6 weeks", help="Threshold for oxygen is higher (92%) for this group.")
+    is_under_6_weeks = st.checkbox("Infant age < 6 weeks", help="Oxygen threshold is 92% for this group.")
 
 with col_risks:
     risk_factors = st.multiselect(
@@ -33,8 +33,7 @@ c1, c2, c3 = st.columns(3)
 with c1:
     effort = st.radio(
         "Respiratory Effort (Work of Breathing):",
-        ["Normal", "Mild Recession", "Moderate Recession", "Severe Recession / Grunting"],
-        help="The primary pillar of severity assessment."
+        ["Normal", "Mild Recession", "Moderate Recession", "Severe Recession / Grunting"]
     )
     behavior = st.radio(
         "Behavioral State:",
@@ -50,78 +49,80 @@ with c2:
 
 with c3:
     rr = st.number_input("Respiratory Rate (bpm):", min_value=10, max_value=150, value=40)
-    spo2 = st.slider("Oxygen Saturation (SpO2 %):", 80, 100, 96)
-    st.info(f"O2 Threshold for this patient: {'92%' if is_under_6_weeks else '90%'}")
+    spo2 = st.slider("Oxygen Saturation (SpO2 %):", 70, 100, 96)
+    
+    # Visual feedback for O2 threshold
+    current_threshold = 92 if is_under_6_weeks else 90
+    st.info(f"O2 Threshold for 'Mild' classification: {current_threshold}%")
 
-# --- SECTION 3: REFINED SEVERITY LOGIC (2025) ---
+# --- SECTION 3: REFINED SEVERITY LOGIC (PAGE 18) ---
 severity = "Mild"
-o2_threshold = 92 if is_under_6_weeks else 90
 
-# Severe Logic
+# 🚨 Severe Criteria (SpO2 < 87% is the key marker here)
 if (effort == "Severe Recession / Grunting" or 
+    spo2 < 87 or 
     behavior == "Lethargic / Altered Mental State" or 
     apnoea == "Observed" or 
-    rr > 70 or 
-    spo2 < 88): # Very low SpO2 is always a concern
+    rr > 70):
     severity = "Severe"
 
-# Moderate Logic
+# ⚠️ Moderate Criteria (SpO2 between 87% and threshold)
 elif (effort == "Moderate Recession" or 
-      spo2 < o2_threshold or 
+      (87 <= spo2 < current_threshold) or 
       (50 <= rr <= 70) or 
       feeding != "Normal / Adequate" or 
       apnoea == "Reported by parents" or 
       behavior == "Irritable / Difficult to soothe"):
     severity = "Moderate"
 
-# --- SECTION 4: INTEGRATED INTERVENTIONS & NOTES ---
+# --- SECTION 4: INTEGRATED INTERVENTIONS ---
 st.divider()
-st.header(f"Clinical Classification: {severity}")
+st.header(f"Final Classification: {severity}")
 
-# High-priority warnings (The "Don'ts" from the 2025 Guide)
-st.error("🚫 **AVOID ROUTINE:** Salbutamol, Steroids, Antibiotics, Chest X-rays, and Viral Swabs.")
+# Strong Recommendations (The "Don'ts")
+st.error("🚫 **DO NOT ROUTINELY USE:** Salbutamol, Steroids, Antibiotics, Chest X-rays, or Viral Swabs.")
 
 col_plan, col_caution = st.columns([2, 1])
 
 with col_plan:
     if severity == "Mild":
-        st.success("### ✅ Management: Home Care")
+        st.success("### ✅ Intervention: Discharge & Home Care")
         st.markdown(f"""
-        - **Oxygen:** Not indicated. SpO2 of {spo2}% is acceptable.
-        - **Fluids:** Encourage frequent small oral feeds.
-        - **Suction:** Superficial nasal suction only if needed for feeding.
-        - **Discharge Criteria:** Maintain SpO2 > {o2_threshold}% and feeding > 50-75%.
+        - **Oxygen:** Not indicated. Current SpO2 ({spo2}%) is acceptable.
+        - **Hydration:** Oral fluids; encourage small frequent feeds.
+        - **Criteria:** SpO2 > {current_threshold}% and adequate feeding.
         """)
     
     elif severity == "Moderate":
-        st.warning("### ⚠️ Management: Hospital Observation")
+        st.warning("### ⚠️ Intervention: Hospital Observation")
         st.markdown(f"""
-        - **Oxygen:** Only if SpO2 is persistently < {o2_threshold}%. Aim for {o2_threshold}%.
-        - **Fluids:** NGT is preferred over IV if oral intake < 50-75%. 
-        - **Monitoring:** Avoid continuous oximetry if the infant is stable and not on oxygen.
-        - **Escalation:** Do not use High Flow (HF) as first-line therapy.
+        - **Oxygen:** Target SpO2 ≥ {current_threshold}%. Start only if persistently below.
+        - **Hydration:** NGT is preferred over IV if intake is < 50-75%.
+        - **Note:** Avoid continuous monitoring if stable and not on oxygen.
         """)
     
     else:
-        st.error("### 🚨 Management: Urgent / HDU Admission")
+        st.error("### 🚨 Intervention: Urgent / HDU Admission")
         st.markdown("""
-        - **Respiratory Support:** Consider CPAP or High Flow Oxygen.
-        - **Fluids:** IV or NGT (Restrict to 2/3 maintenance to prevent SIADH/Fluid overload).
-        - **Clinical:** Immediate Senior Review Required.
+        - **Support:** Consider CPAP or High Flow Oxygen.
+        - **Fluids:** IV or NGT (consider 2/3 maintenance).
+        - **Review:** Immediate Senior Clinician review required.
         """)
 
 with col_caution:
-    st.info("💡 **Clinical Pearls:**")
-    # Smart Oxygen Note
-    if spo2 < o2_threshold and effort == "Normal":
-        st.warning(f"**O2 Caution:** SpO2 is <{o2_threshold}% but effort is normal. 2025 guidelines advise against escalation for 'isolated hypoxaemia' if the child is clinically well.")
+    st.info("📌 **Clinical Pearls (2025 Guide):**")
     
+    # Specific logic for the 87-90% trap
+    if 87 <= spo2 < current_threshold and effort != "Severe Recession / Grunting":
+        st.warning(f"**Note:** SpO2 is {spo2}%. This is **Moderate** as per guidelines. Do not escalate to 'Severe' treatment unless work of breathing worsens.")
+
     st.markdown("""
-    - **Work of Breathing** is a more reliable indicator than SpO2.
-    - **Nasogastric (NGT)** hydration is safer and preferred over IV fluids.
-    - **SARS-CoV-2:** If positive AND hypoxaemic, consider Dexamethasone.
+    - **Work of Breathing** is more important than the SpO2 number.
+    - **NGT** is the preferred route for hydration.
+    - **SARS-CoV-2:** Consider Dexamethasone only if positive AND hypoxaemic.
     """)
 
-# Reset Button
-if st.button("New Assessment"):
+
+
+if st.button("New Patient Assessment"):
     st.rerun()
