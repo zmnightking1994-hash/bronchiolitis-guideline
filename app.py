@@ -1,27 +1,29 @@
 import streamlit as st
 
 # Page setup
-st.set_page_config(page_title="Bronchiolitis Guideline", layout="wide")
+st.set_page_config(page_title="Bronchiolitis Guideline 2025", layout="wide")
 
-st.title("📑 Bronchiolitis Management Pathway")
+st.title("📑 Australasian Bronchiolitis Management Pathway (2025 Update)")
 
-# --- SECTION 1: RISK FACTORS ---
-st.subheader("1. Pre-existing Risk Factors")
-with st.expander("Click to select risk factors", expanded=True):
+# --- SECTION 1: RISK FACTORS (As per Guideline p. 9) ---
+st.subheader("1. Risk Factors for Severe Illness")
+with st.expander("Identify factors that increase risk of deterioration", expanded=True):
     col_r1, col_r2 = st.columns(2)
     with col_r1:
-        age_risk = st.checkbox("Age < 6 weeks")
-        preterm = st.checkbox("Preterm birth (< 37 weeks)")
+        age_risk = st.checkbox("Young chronological age (especially < 6 weeks)")
+        preterm = st.checkbox("Gestational age < 37 weeks")
+        tobacco = st.checkbox("Exposure to tobacco smoke (Prenatal/Postnatal)")
     with col_r2:
-        cardiac = st.checkbox("Hemodynamically significant CHD")
-        chronic_lung = st.checkbox("Chronic Lung Disease / Immunodeficiency")
+        comorbidities = st.checkbox("Comorbidities (CHD, CLD, Trisomy 21, etc.)")
+        breastfeeding = st.checkbox("Reduced breastfeeding exposure")
+        growth = st.checkbox("Faltering growth / Slow weight gain")
 
-if any([age_risk, preterm, cardiac, chronic_lung]):
-    st.warning("⚠️ High Risk: Lower threshold for admission and frequent review required.")
+if any([age_risk, preterm, tobacco, comorbidities, breastfeeding, growth]):
+    st.warning("⚠️ High Risk: These factors are cumulative. Consider a longer observation period or admission even if symptoms are currently mild.")
 
 st.divider()
 
-# --- SECTION 2: CLINICAL ASSESSMENT ---
+# --- SECTION 2: CLINICAL ASSESSMENT (As per Guideline p. 11-14) ---
 st.subheader("2. Clinical Assessment")
 c1, c2, c3 = st.columns(3)
 
@@ -29,71 +31,79 @@ with c1:
     effort = st.radio(
         "Respiratory Effort:",
         ["Normal", "Mild Recession", "Moderate Recession", "Severe Recession / Grunting"],
-        index=0
+        help="Check for tachypnoea and retractions."
     )
     behavior = st.radio(
         "Behavioral State:",
-        ["Normal / Alert", "Irritable / Difficult to soothe", "Lethargic / Reduced response"],
-        index=0
+        ["Normal / Alert", "Irritable / Difficult to soothe", "Lethargic / Altered Mental State"]
     )
 
 with c2:
     feeding = st.radio(
-        "Feeding Status (Oral intake):",
-        ["Normal", "50-75% of normal", "< 50% of normal"],
-        index=0
+        "Hydration / Nutrition Status:",
+        ["Adequate Intake", "50-75% of normal intake", "< 50% of normal intake / Dehydration"]
     )
     apnoea = st.selectbox("Apnoea:", ["None", "Reported", "Observed"])
 
 with c3:
     rr = st.number_input("Respiratory Rate (breaths/min):", min_value=10, max_value=150, value=40)
-    hr = st.number_input("Heart Rate (bpm):", min_value=30, max_value=250, value=120)
     spo2 = st.slider("Oxygen Saturation (SpO2 %):", 80, 100, 96)
+    age_under_6w = age_risk # Linked to the risk factor checkbox
 
-# --- SECTION 3: SEVERITY LOGIC ---
+# --- SECTION 3: SEVERITY LOGIC (Pragmatic Definition p. 18) ---
 severity = "Mild"
-if (effort == "Severe Recession / Grunting" or spo2 < 90 or rr > 70 or 
-    behavior == "Lethargic / Reduced response" or feeding == "< 50% of normal" or apnoea == "Observed"):
+
+# Severe Criteria
+if (effort == "Severe Recession / Grunting" or 
+    spo2 < 90 or 
+    behavior == "Lethargic / Altered Mental State" or 
+    feeding == "< 50% of normal intake / Dehydration" or 
+    apnoea == "Observed" or
+    rr > 70):
     severity = "Severe"
-elif (effort == "Moderate Recession" or (90 <= spo2 < 92) or (50 <= rr <= 70) or
-      behavior == "Irritable / Difficult to soothe" or feeding == "50-75% of normal" or apnoea == "Reported"):
+
+# Moderate Criteria
+elif (effort == "Moderate Recession" or 
+      (90 <= spo2 < 92) or 
+      (50 <= rr <= 70) or
+      behavior == "Irritable / Difficult to soothe" or 
+      feeding == "50-75% of normal intake" or
+      apnoea == "Reported"):
     severity = "Moderate"
 
-# --- SECTION 4: INTEGRATED INTERVENTIONS ---
+# --- SECTION 4: INTEGRATED INTERVENTIONS (Based on p. 12-14) ---
 st.divider()
-st.header(f"Result: {severity} Bronchiolitis")
+st.header(f"Clinical Status: {severity}")
 
-# General Clinical Notes (The "Don'ts")
-st.error("🚫 **DO NOT ROUTINELY USE:** Salbutamol, Steroids, Antibiotics, Chest X-rays, or Viral Swabs.")
+# Global Recommendations (The "Don'ts")
+st.error("🚫 **GUIDELINE RESTRICTIONS:** Do not routinely use Chest X-rays, Blood tests, Viral swabs, Salbutamol, Steroids, Antibiotics, or Chest Physiotherapy.")
 
 if severity == "Mild":
-    st.success("### ✅ Intervention: Home Care (Discharge)")
-    st.markdown("""
-    * **Feeding:** Ensure oral intake > 75%. Encourage small frequent feeds.
-    * **Suction:** Nasal suction only if nose is blocked.
-    * **Discharge Criteria:** SpO2 > 92% on air and stable clinical state.
-    * **Safety Net:** Advise parents to return if effort increases or feeding drops.
+    st.success("### ✅ Interventions & Discharge Plan")
+    st.markdown(f"""
+    * **Oxygen:** Not required (SpO2 is {spo2}%).
+    * **Hydration:** Encourage oral fluids. No supplemental hydration needed if > 75% intake.
+    * **Suction:** Superficial nasal suction only if nose is blocked or before feeding.
+    * **Discharge Criteria:** SpO2 > 92% (or > 90% if > 6 weeks old), feeding > 50-75%, and parents feel confident.
     """)
 
 elif severity == "Moderate":
-    st.warning("### ⚠️ Intervention: Hospital Observation")
-    st.markdown("""
-    * **Oxygen:** Titrate to maintain SpO2 > 92%.
-    * **Feeding:** Consider Nasogastric Tube (NGT) if intake is 50-75%.
-    * **Monitoring:** Regular clinical assessment and minimal handling.
-    * **Support:** Ensure parental confidence and provide teaching on suction.
+    st.warning("### ⚠️ Interventions & Observation")
+    st.markdown(f"""
+    * **Oxygen:** Consider supplemental oxygen if SpO2 persistently < 90% (or < 92% if < 6 weeks old).
+    * **Hydration:** Provide NG or IV fluids if oral intake is < 50-75% or dehydration present. NG is preferred.
+    * **Monitoring:** Use Early Warning Tools (EWT). Do not use continuous pulse oximetry for stable non-hypoxaemic infants.
+    * **High Flow (HF):** Do not use HF as first-line. Consider only if failing low-flow oxygen.
     """)
 
 else:
-    st.error("### 🚨 Intervention: URGENT ADMISSION / HDU")
+    st.error("### 🚨 Urgent Interventions (HDU/ICU)")
     st.markdown("""
-    * **Respiratory:** Start CPAP or High Flow Nasal Cannula (HFNC).
-    * **Fluids:** IV fluids (consider 1/2 or 2/3 maintenance) or NGT feeding.
-    * **Consultation:** Immediate Senior Clinician / Pediatric ICU review.
-    * **Observation:** Constant monitoring for apnoea and exhaustion.
+    * **Respiratory Support:** Consider CPAP for severe respiratory failure. HF therapy may be used prior to CPAP.
+    * **Hydration:** NG or IV fluids (consider restriction to 50-75% of maintenance to avoid fluid overload).
+    * **Consultation:** Immediate Senior Clinician review. 
+    * **SARS-CoV-2 Note:** If co-infected and hypoxaemic, consider Dexamethasone.
     """)
-
-
 
 if st.button("New Assessment"):
     st.rerun()
