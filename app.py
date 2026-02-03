@@ -1,15 +1,16 @@
 import streamlit as st
 
 # --- Page Configuration ---
-st.set_page_config(page_title="Bronchiolitis Gold Standard 2026", layout="wide")
+st.set_page_config(page_title="Bronchiolitis Clinical Guide 2026", layout="wide")
 
-st.title("📑 Bronchiolitis Management Pathway (Comprehensive Version)")
-st.caption("Integrated Protocol: RCH Melbourne, PREDICT & 2026 Safety Guidelines")
+st.title("📑 Bronchiolitis Management Pathway")
+st.caption("Evidence-Based Guidelines: RCH Melbourne, PREDICT & Global Standards")
 
 # --- 1. RISK ASSESSMENT ---
 st.header("1. Risk Assessment")
 col_age, col_risks = st.columns([1, 2])
 with col_age:
+    # High risk for apnoea in infants under 6 weeks
     is_under_6_weeks = st.checkbox("Infant age < 6 weeks") 
 
 with col_risks:
@@ -19,7 +20,7 @@ with col_risks:
          "Neurological conditions", "Immunodeficiency", "Tobacco smoke exposure"]
     )
 
-# Adjust target oxygen threshold
+# SpO2 Threshold: 92% for high risk, 90% for standard
 current_threshold = 92 if (is_under_6_weeks or risk_factors) else 90
 
 st.divider()
@@ -39,113 +40,89 @@ with c3:
     spo2 = st.slider("Oxygen Saturation (SpO2 %):", 70, 100, 96)
     st.info(f"💡 Target SpO2: ≥ {current_threshold}%")
 
-# --- 3. SEPARATED SAFETY LOGIC ---
+# --- 3. REFINED SEVERITY & SAFETY LOGIC ---
 
-# Respiratory & Clinical Severity Logic
-resp_severity = "Mild"
+# a. General Severity (Overall Classification)
+severity = "Mild"
+if (effort == "Moderate" or behavior == "Irritable" or feeding_status == "50-75% Intake" or 
+    apnoea == "Reported by parents" or (87 <= spo2 < current_threshold) or (50 <= rr <= 70)):
+    severity = "Moderate"
 
-# Check for Moderate Severity first
-if (effort == "Moderate" or 
-    behavior == "Irritable" or 
-    feeding_status == "50-75% Intake" or 
-    apnoea == "Reported by parents" or 
-    (87 <= spo2 < current_threshold) or 
-    (50 <= rr <= 70)):
-    resp_severity = "Moderate"
+if (effort == "Severe / Grunting" or behavior == "Lethargic / Altered Mental State" or 
+    feeding_status == "< 50% / Dehydration" or apnoea == "Observed clinically" or 
+    spo2 < 87 or rr > 70):
+    severity = "Severe"
 
-# Severe Severity Overrides (High-risk triggers)
-if (effort == "Severe / Grunting" or 
-    spo2 < 87 or 
-    apnoea == "Observed clinically" or 
-    behavior == "Lethargic / Altered Mental State" or 
-    feeding_status == "< 50% / Dehydration" or
-    rr > 70):
-    resp_severity = "Severe"
+# b. Respiratory Support Logic (Fixed: Poor feeding alone doesn't trigger HFNC)
+needs_advanced_resp = (effort == "Severe / Grunting" or spo2 < 87 or apnoea == "Observed clinically")
 
-# Airway Protection (Feeding Safety Logic)
-is_unsafe_to_feed = (
-    behavior == "Lethargic / Altered Mental State" or 
-    apnoea == "Observed clinically" or 
-    effort == "Severe / Grunting"
-)
+# c. Feeding Safety (Aspiration Risk)
+is_unsafe_to_feed = (behavior == "Lethargic / Altered Mental State" or apnoea == "Observed clinically" or effort == "Severe / Grunting")
 
-# --- 4. DETAILED MANAGEMENT PILLARS ---
+# --- 4. MANAGEMENT PILLARS ---
 st.divider()
-st.header(f"Management Plan | Resp: {resp_severity} | Feeding Status: {'⚠️ NBM REQUIRED' if is_unsafe_to_feed else 'Stable'}")
+st.header(f"Plan | Severity: {severity} | Feeding: {'⚠️ NPO REQUIRED' if is_unsafe_to_feed else 'Stable'}")
+st.error("🚫 AVOID: Salbutamol, Steroids, Antibiotics, or Routine Chest X-rays.")
 
 col_resp, col_hydra = st.columns(2)
 
 with col_resp:
-    st.subheader("🫁 Pillar 1: Detailed Respiratory Support")
-    if resp_severity == "Severe":
-        st.error("**🚨 High Flow (HFNC) & Escalation Protocol:**")
+    st.subheader("🫁 Pillar 1: Respiratory Support")
+    if needs_advanced_resp:
+        st.error("**🚨 High Flow (HFNC) & Escalation:**")
         st.markdown(f"""
-        1. **High Flow Nasal Cannula (HFNC):**
-           - **Flow Rate:** Start at **2 L/kg/min** (Max 20-25 L/min).
-           - **FiO2:** Start at **40%** and titrate to keep SpO2 ≥ {current_threshold}%.
-           - **Monitoring:** **Continuous** heart rate, RR, and SpO2.
-        
-        2. **CPAP (If HFNC Fails):**
-           - **Criteria:** Persistent apnoea, FiO2 > 50% on HFNC, or worsening acidosis/effort.
-           - **Pressure:** Start at **5 - 7 cmH2O**.
-           - **Note:** Transfer to ICU/HDU environment.
+        - **HFNC Flow**: Start at **2 L/kg/min**.
+        - **FiO2**: Titrate to maintain SpO2 ≥ {current_threshold}%.
+        - **Escalation**: Consider CPAP if FiO2 > 50% or persistent apnoea.
+        - **CPAP**: Pressure **5 - 8 cmH2O**.
+        - **Support**: Ensure nasal suctioning and gastric venting (Venting NGT).
         """)
-    elif resp_severity == "Moderate":
+    elif severity == "Moderate" or spo2 < current_threshold:
         st.warning("**⚠️ Low Flow Oxygen (LFNP):**")
-        st.markdown(f"""
-        - **Device:** Nasal prongs at **0.5 - 2 L/min**.
-        - **Goal:** Maintain SpO2 ≥ {current_threshold}%.
-        - **Trial:** If stable for 2h, attempt trial off O2.
-        """)
+        st.write(f"- Administer O2 via nasal prongs at 0.5 - 2 L/min.")
+        st.write(f"- Aim for SpO2 ≥ {current_threshold}%.")
     else:
         st.success("**✅ Action: Monitoring Only**")
-        st.write(f"- SpO2 {spo2}% is adequate on room air.")
+        st.write("- Regular clinical assessment (HR, RR, WOB) every 4 hours.")
 
 with col_hydra:
-    st.subheader("🍼 Pillar 2: Detailed Hydration")
+    st.subheader("🍼 Pillar 2: Hydration & Nutrition")
     if is_unsafe_to_feed:
         st.error("**🚨 Action: NBM (Nil By Mouth)**")
-        st.markdown(f"""
-        - **Reason:** High aspiration risk due to **{'Severe Effort' if effort == 'Severe / Grunting' else 'Altered Consciousness/Apnoea'}**.
-        - **Method:** Start **NGT** (Nasogastric Tube) hydration.
-        - **Rate:** Restricted to **66% of maintenance** to avoid fluid overload/SIADH.
-        """)
+        st.write("- **Method**: NGT hydration (preferred) or IV fluids.")
+        st.write("- **Rate**: **66% - 75% of maintenance** (Fluid restriction to prevent SIADH).")
     elif feeding_status == "< 50% / Dehydration":
         st.error("**Action: Active Hydration**")
-        st.write("- Start **NGT** (preferred) at 66-75% maintenance.")
+        st.write("- Start **NGT** (preferred) or IV hydration at **75% - 100%** maintenance.")
+        st.info("💡 Respiratory distress is absent; focus on hydration stability.")
     elif feeding_status == "50-75% Intake":
-        st.warning("**Action: NGT Bolus Support**")
-        st.write("- Supplemental NGT feeds to ensure 100% maintenance.")
+        st.warning("**Action: NGT Supplementation**")
+        st.write("- Bolus NGT feeds to supplement oral intake.")
     else:
         st.success("**Action: Oral Feeding**")
-        st.write("- Continue breast/formula feeds as tolerated.")
+        st.write("- Continue breast or formula feeds as tolerated.")
 
 # --- 5. DETAILED WEANING & DISCHARGE ---
 st.divider()
-st.subheader("🏥 Weaning & Discharge Protocol (Detailed)")
+st.subheader("🏥 Weaning & Discharge Protocol")
 
-if spo2 >= 95 and effort == "Normal" and behavior == "Normal / Alert" and feeding_status == "Adequate":
-    st.balloons()
-    st.success("**🚀 Fast Track Discharge Enabled:** SpO2 ≥ 95% + Stable Clinical State. Safe for home.")
-else:
-    c_wean, c_dis = st.columns(2)
-    with c_wean:
-        st.info("**📉 Oxygen Weaning (How to stop O2):**")
-        st.markdown(f"""
-        - **When to start:** If SpO2 is consistently > {current_threshold+2}% for 2 hours.
-        - **HFNC Weaning:** 1. Reduce FiO2 to **21% (Room Air)**.
-            2. If stable for 2h on 21% FiO2, stop HFNC flow.
-        - **Low Flow Weaning:** Trial off O2 directly to room air.
-        - **Trial Frequency:** Attempt weaning every **6-12 hours** (ideally when awake).
-        """)
-    with c_dis:
-        st.info("**🏠 Standard Discharge Criteria:**")
-        st.markdown(f"""
-        - **Oxygen:** SpO2 ≥ {current_threshold}% on room air for **4-12 hours** (must include a period of sleep).
-        - **Feeding:** Oral intake consistently > 50-75% of normal volumes.
-        - **Work of Breathing:** Stable (Normal or Mild) with no grunting.
-        - **Social:** Parents confident and have access to follow-up.
-        """)
+c_wean, c_dis = st.columns(2)
+with c_wean:
+    st.info("**📉 Weaning Protocol:**")
+    st.markdown(f"""
+    - **HFNC**: 1. Reduce FiO2 to **21%**. 2. If stable for 2h, trial off flow.
+    - **Low Flow**: Trial off directly to room air.
+    - **Success**: Stable HR/RR and SpO2 ≥ {current_threshold}% for 2-4 hours.
+    - **Fail**: Increased WOB, HR increases > 20 bpm, or RR > 10 bpm.
+    """)
+with c_dis:
+    st.info("**🏠 Discharge Criteria:**")
+    st.markdown(f"""
+    - **Oxygen**: SpO2 ≥ {current_threshold}% on room air for **4 - 12 hours** (including sleep).
+    - **Feeding**: Oral intake consistently **> 50-75%** of normal volumes.
+    - **Clinical**: Stable work of breathing with no grunting.
+    - **Social**: Caregivers are confident in home management.
+    """)
 
 if st.button("Start New Assessment"):
     st.rerun()
