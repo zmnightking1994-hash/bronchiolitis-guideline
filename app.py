@@ -46,24 +46,27 @@ with c2:
     apnoea = st.selectbox("Apnoea:", ["None", "Reported", "Observed"])
 
 with c3:
+    # Adding Respiratory Rate (RR) and Heart Rate (HR)
+    rr = st.number_input("Respiratory Rate (breaths/min):", min_value=10, max_value=150, value=40)
     hr = st.number_input("Heart Rate (bpm):", min_value=30, max_value=250, value=120)
     spo2 = st.slider("Oxygen Saturation (SpO2 %):", 80, 100, 96)
 
-# --- SECTION 3: LOGIC ---
-# Using criteria from bronchioritis.xlsx
+# --- SECTION 3: LOGIC (Based on bronchioritis.xlsx) ---
 severity = "Mild"
 
-# Severe Criteria
+# Severe Criteria: RR > 70 or any severe marker
 if (effort == "Severe Recession / Grunting" or 
     spo2 < 90 or 
-    behavior == "Lethargic / Reduced response" or 
+    rr > 70 or
+    behavior == "Letharging / Reduced response" or 
     feeding == "< 50% of normal" or 
     apnoea == "Observed"):
     severity = "Severe"
 
-# Moderate Criteria
+# Moderate Criteria: RR 50-70 or moderate markers
 elif (effort == "Moderate Recession" or 
       (90 <= spo2 < 92) or 
+      (50 <= rr <= 70) or
       behavior == "Irritable / Difficult to soothe" or 
       feeding == "50-75% of normal" or
       apnoea == "Reported"):
